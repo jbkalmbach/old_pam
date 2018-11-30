@@ -4,6 +4,9 @@ import torch.nn.functional as F
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
+sys.path.append('/home/brycek/sd_card/photo_z_metrics/code/')
+from calc_metrics import point_metrics
 
 class data_reader():
 
@@ -115,24 +118,45 @@ if __name__ == "__main__":
     test_output = net(net_test_input)
 
     # Plot scatter plots
-    fig = plt.figure(figsize=(12, 6))
+    fig = plt.figure(figsize=(12, 12))
 
-    fig.add_subplot(1,2,1)
+    fig.add_subplot(2,2,1)
 
-    plt.scatter(train_true, 
-                prediction.detach().numpy(), s=8, alpha=0.2)
+    plt.hexbin(train_true, 
+               prediction.detach().numpy(), bins='log', cmap='inferno')
     plt.plot(np.arange(0, 3.5, 0.01), np.arange(0, 3.5, 0.01), ls='--', c='r')
     plt.xlabel('True Z')
     plt.ylabel('Photo Z')
     plt.title('Training Results: %i objects' % train_len)
 
-    fig.add_subplot(1,2,2)
+    fig.add_subplot(2,2,2)
 
-    plt.scatter(test_true, test_output.detach().numpy(), s=8, alpha=0.2)
+    plt.hexbin(test_true, test_output.detach().numpy(), bins='log',
+               cmap='inferno')
     plt.plot(np.arange(0, 3.5, 0.01), np.arange(0, 3.5, 0.01), ls='--', c='r')
     plt.xlabel('True Z')
     plt.ylabel('Photo Z')
     plt.title('Test Results: %i objects' % test_len)
+
+    fig.add_subplot(2,2,3)
+
+    pm = point_metrics()
+    print(np.shape(test_output.detach().numpy()), np.shape(test_true))
+    bias = pm.photo_z_robust_bias(test_output.detach().numpy().reshape(test_len),
+                                  test_true.reshape(test_len), 3.5, 15)
+    plt.plot(np.linspace(0, 3.5, 15), bias)
+    plt.xlabel('True Z')
+    plt.ylabel('Robust Bias')
+
+    fig.add_subplot(2,2,4)
+
+    pm = point_metrics()
+    print(np.shape(test_output.detach().numpy()), np.shape(test_true))
+    stdev_iqr = pm.photo_z_robust_stdev(test_output.detach().numpy().reshape(test_len),
+                                        test_true.reshape(test_len), 3.5, 15)
+    plt.plot(np.linspace(0, 3.5, 15), stdev_iqr)
+    plt.xlabel('True Z')
+    plt.ylabel('Robust Standard Deviation')
 
     plt.tight_layout()
     plt.savefig('pz_results.pdf')
