@@ -48,15 +48,29 @@ if __name__ == "__main__":
     train_cat =  data_reader()
     filename = os.path.join('/home/brycek/sd_card',
                             'data_augment/scripts_bryce/cats',
-                            'train_neural_net.dat')
+                            'Euclid_trim_25p2_3p5.dat')
     cat_df = pd.DataFrame(train_cat.get_catalog(filename))
     
     cat_df['index'] = cat_df['index'].astype('int')
 
-    input_data = cat_df[['u', 'g', 'r', 'i', 'z', 'y']].values
+    train_len = 500000
+    test_len = len(cat_df) - train_len
+    train_input = cat_df[['u', 'g', 'r', 'i', 'z', 'y']].values[:train_len]
+    test_input = cat_df[['u', 'g', 'r', 'i', 'z', 'y']].values[train_len:]
+    train_true = cat_df[['redshift']].values[:train_len]
+    test_true = cat_df[['redshift']].values[train_len:]
+    print('Training set size: %i. Test set size: %i.' % (train_len, 
+                                                         test_len))
+
     # Normalize data
-    input_data -= np.mean(input_data, axis=0)
-    input_data /= np.std(input_data, axis=0)
+    train_mean = np.mean(train_input, axis=0)
+    train_stdev = np.std(train_input, axis=0)
+    train_input -= train_mean
+    train_input /= train_stdev
+
+    # Do same for test input but with same parameters as training
+    test_input -= train_mean
+    test_input /= train_stdev
 
     net = Net(6, 20, 1)
     print(net)
@@ -64,19 +78,18 @@ if __name__ == "__main__":
     optimizer = torch.optim.SGD(net.parameters(), lr=0.2)
     loss_func = torch.nn.MSELoss()
 
-    for t in range(250):
+    for t in range(100):
 
         batch_size = 10000
 
-        for batch_start in range(0, len(cat_df), batch_size):
+        for batch_start in range(0, train_len, batch_size):
 
-            nn_input = input_data[batch_start:
-                                  batch_start+batch_size]
+            nn_input = train_input[batch_start:
+                                   batch_start+batch_size]
 
             nn_input = torch.tensor(nn_input, dtype=torch.float)
 
-            true_output = cat_df['redshift'].values[batch_start:
-                                                    batch_start+batch_size]
+            true_output = train_true[batch_start: batch_start+batch_size]
 
             true_output = torch.tensor(true_output, 
                                        dtype=torch.float).reshape(batch_size,1)
@@ -90,11 +103,36 @@ if __name__ == "__main__":
             optimizer.step()
 
         if t % 5 == 0:
-            print(input_data[2], prediction[2], true_output[2], loss.data)
-            print(input_data[5], prediction[5], true_output[5], loss.data)
+            print(nn_input[2], prediction[2], true_output[2], loss.data)
+            print(nn_input[5], prediction[5], true_output[5], loss.data)
 
-    fig = plt.figure()
-    plt.scatter(true_output.detach().numpy(), 
+    # Run on all training data
+    nn_input = torch.tensor(train_input, dtype=torch.float)
+    prediction = net(nn_input)
+
+    # Run on test data
+    net_test_input = torch.tensor(test_input, dtype=torch.float)
+    test_output = net(net_test_input)
+
+    # Plot scatter plots
+    fig = plt.figure(figsize=(12, 6))
+
+    fig.add_subplot(1,2,1)
+
+    plt.scatter(train_true, 
                 prediction.detach().numpy(), s=8, alpha=0.2)
     plt.plot(np.arange(0, 3.5, 0.01), np.arange(0, 3.5, 0.01), ls='--', c='r')
-    plt.show()
+    plt.xlabel('True Z')
+    plt.ylabel('Photo Z')
+    plt.title('Training Results: %i objects' % train_len)
+
+    fig.add_subplot(1,2,2)
+
+    plt.scatter(test_true, test_output.detach().numpy(), s=8, alpha=0.2)
+    plt.plot(np.arange(0, 3.5, 0.01), np.arange(0, 3.5, 0.01), ls='--', c='r')
+    plt.xlabel('True Z')
+    plt.ylabel('Photo Z')
+    plt.title('Test Results: %i objects' % test_len)
+
+    plt.tight_layout()
+    plt.savefig('pz_results.pdf')
