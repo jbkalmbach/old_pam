@@ -8,6 +8,29 @@ import sys
 sys.path.append('/home/brycek/sd_card/photo_z_metrics/code/')
 from calc_metrics import point_metrics
 
+torch.manual_seed(1446)
+
+def plot_color_color(mag_cat, filename):
+
+    color_cat = mag_cat[:, :-1] - mag_cat[:, 1:]
+
+    fig = plt.figure(figsize=(12,12))
+    color_names = ['u-g', 'g-r', 'r-i', 'i-z', 'z-y']
+
+    for color_idx in range(4):
+
+        fig.add_subplot(2,2,color_idx+1)
+
+        plt.hexbin(color_cat[:, color_idx], 
+                   color_cat[:, color_idx+1], bins='log')
+
+        plt.xlabel(color_names[color_idx])
+        plt.ylabel(color_names[color_idx+1])
+
+    plt.tight_layout()
+    plt.savefig(filename)
+
+
 class data_reader():
 
     def __init__(self):
@@ -58,8 +81,21 @@ if __name__ == "__main__":
 
     train_len = 500000
     test_len = len(cat_df) - train_len
+
+    use_colors = True
+    plot_color = True
+
     train_input = cat_df[['u', 'g', 'r', 'i', 'z', 'y']].values[:train_len]
     test_input = cat_df[['u', 'g', 'r', 'i', 'z', 'y']].values[train_len:]
+    # To use colors
+    if use_colors is True:
+        train_input = train_input[:, :-1] - train_input[:, 1:]
+        test_input = test_input[:, :-1] - test_input[:, 1:]
+
+    if plot_color is True:
+        plot_color_color(cat_df[['u', 'g', 'r', 'i', 'z', 'y']].values,
+                         'full_data_color_color.pdf')
+
     train_true = cat_df[['redshift']].values[:train_len]
     test_true = cat_df[['redshift']].values[train_len:]
     print('Training set size: %i. Test set size: %i.' % (train_len, 
@@ -75,7 +111,10 @@ if __name__ == "__main__":
     test_input -= train_mean
     test_input /= train_stdev
 
-    net = Net(6, 20, 1)
+    if use_colors is True:
+        net = Net(5, 20, 1)
+    else:
+        net = Net(6, 20, 1)
     print(net)
 
     optimizer = torch.optim.SGD(net.parameters(), lr=0.2)
@@ -123,7 +162,7 @@ if __name__ == "__main__":
     fig.add_subplot(2,2,1)
 
     plt.hexbin(train_true, 
-               prediction.detach().numpy(), bins='log', cmap='inferno')
+               prediction.detach().numpy(), bins='log', cmap='viridis')
     plt.plot(np.arange(0, 3.5, 0.01), np.arange(0, 3.5, 0.01), ls='--', c='r')
     plt.xlabel('True Z')
     plt.ylabel('Photo Z')
@@ -132,7 +171,7 @@ if __name__ == "__main__":
     fig.add_subplot(2,2,2)
 
     plt.hexbin(test_true, test_output.detach().numpy(), bins='log',
-               cmap='inferno')
+               cmap='viridis')
     plt.plot(np.arange(0, 3.5, 0.01), np.arange(0, 3.5, 0.01), ls='--', c='r')
     plt.xlabel('True Z')
     plt.ylabel('Photo Z')
@@ -160,3 +199,4 @@ if __name__ == "__main__":
 
     plt.tight_layout()
     plt.savefig('pz_results.pdf')
+
