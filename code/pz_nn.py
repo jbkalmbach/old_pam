@@ -10,43 +10,6 @@ from plot_pz_nn import plot_pz_results
 torch.manual_seed(1446)
 
 
-def plot_color_color(mag_cat, filename):
-
-    color_cat = mag_cat[:, :-1] - mag_cat[:, 1:]
-
-    fig = plt.figure(figsize=(12, 12))
-    color_names = ['u-g', 'g-r', 'r-i', 'i-z', 'z-y']
-
-    for color_idx in range(4):
-
-        fig.add_subplot(2,2,color_idx+1)
-
-        plt.hexbin(color_cat[:, color_idx],
-                   color_cat[:, color_idx+1], bins='log')
-
-        plt.xlabel(color_names[color_idx])
-        plt.ylabel(color_names[color_idx+1])
-
-    plt.tight_layout()
-    plt.savefig(filename)
-
-
-class data_reader():
-
-    def __init__(self):
-
-        return
-
-    def get_catalog(self, filename):
-
-        cat_df = np.genfromtxt(filename, names=['index', 'redshift',
-                                                'u', 'g', 'r', 'i',
-                                                'z', 'y', 'g_abs',
-                                                'r_abs'])
-
-        return cat_df
-
-
 class Net(torch.nn.Module):
 
     # Using this as guide github.com/MorvanZhou/PyTorch-Tutorial/blob/
@@ -125,36 +88,27 @@ def train_model(train_input, train_true):
 
 if __name__ == "__main__":
 
-    cat_name = 'Euclid_trim_25p2_3p5.dat'
-    cc_plot_name = 'full_color_color'
     results_plot_name = 'pz_results'
 
-    train_cat = data_reader()
-    filename = os.path.join(os.environ['PZ_CAT_FOLDER'],
-                            cat_name)
-    cat_df = pd.DataFrame(train_cat.get_catalog(filename))
+    train_filename = 'train_cat_full.dat'
+    train_df = pd.read_csv(train_filename)
+    test_filename = 'test_cat_full.dat'
+    test_df = pd.read_csv(test_filename)
 
-    cat_df['index'] = cat_df['index'].astype('int')
-
-    train_len = 500000
-    test_len = len(cat_df) - train_len
+    train_len = len(train_df)
+    test_len = len(test_df)
 
     use_colors = True
-    plot_color = True
 
-    train_input = cat_df[['u', 'g', 'r', 'i', 'z', 'y']].values[:train_len]
-    test_input = cat_df[['u', 'g', 'r', 'i', 'z', 'y']].values[train_len:]
+    train_input = train_df[['u', 'g', 'r', 'i', 'z', 'y']].values
+    test_input = test_df[['u', 'g', 'r', 'i', 'z', 'y']].values
     # To use colors
     if use_colors is True:
         train_input = train_input[:, :-1] - train_input[:, 1:]
         test_input = test_input[:, :-1] - test_input[:, 1:]
 
-    if plot_color is True:
-        plot_color_color(cat_df[['u', 'g', 'r', 'i', 'z', 'y']].values,
-                         '%s.pdf' % cc_plot_name)
-
-    train_true = cat_df[['redshift']].values[:train_len]
-    test_true = cat_df[['redshift']].values[train_len:]
+    train_true = train_df[['redshift']].values
+    test_true = test_df[['redshift']].values
     print('Training set size: %i. Test set size: %i.' % (train_len, 
                                                          test_len))
 
