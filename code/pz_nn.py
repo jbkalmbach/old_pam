@@ -90,9 +90,9 @@ if __name__ == "__main__":
 
     results_plot_name = 'pz_results'
 
-    train_filename = 'train_cat_full.dat'
+    train_filename = '../data/train_cat_full.dat'
     train_df = pd.read_csv(train_filename)
-    test_filename = 'test_cat_full.dat'
+    test_filename = '../data/test_cat_full.dat'
     test_df = pd.read_csv(test_filename)
 
     train_len = len(train_df)
