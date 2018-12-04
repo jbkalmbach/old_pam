@@ -115,13 +115,56 @@ def plot_multiple_results(train_results_list, test_results_list,
     plt.tight_layout()
     plt.savefig('../data/%s.pdf' % outname)
 
+def plot_gap_results(train_results_list, test_results_list, 
+                     suffixes, outname, z_high=3.5, n_bins=15):
+
+    fig = plt.figure(figsize=(12,12))
+
+    fig.add_subplot(2, 2, 1)
+
+    pm = point_metrics()
+
+    for idx in range(len(suffixes)):
+        plt.hist(test_results_list[idx]['true_z'], histtype='step',
+                 label=suffixes[idx], bins=np.linspace(0, z_high, n_bins),
+                 normed=True)
+
+    fig.add_subplot(2, 2, 3)
+
+    pm = point_metrics()
+
+    for idx in range(len(suffixes)):
+        bias = pm.photo_z_robust_bias(test_results_list[idx]['photo_z'],
+                                      test_results_list[idx]['true_z'],
+                                      z_high, n_bins)
+        plt.plot(np.linspace(0, z_high, n_bins), bias, label=suffixes[idx])
+    plt.xlabel('True Z')
+    plt.ylabel('Robust Bias')
+    plt.title('Test Set Bias')
+    plt.legend()
+
+    fig.add_subplot(2, 2, 4)
+
+    for idx in range(len(suffixes)):
+        stdev_iqr = pm.photo_z_robust_stdev(test_results_list[idx]['photo_z'],
+                                            test_results_list[idx]['true_z'],
+                                            z_high, n_bins)
+        plt.plot(np.linspace(0, z_high, n_bins), stdev_iqr, label=suffixes[idx])
+    plt.xlabel('True Z')
+    plt.ylabel('Robust Standard Deviation')
+    plt.title('Test Set Standard Deviaiton')
+
+    plt.tight_layout()
+    plt.savefig('../data/%s.pdf' % outname)
+
 if __name__ == "__main__":
 
-    cat_suffixes = ['full', 'sparse']
-    #cat_suffixes = ['full', 'color_gap_4', 'color_gap_7']
+    #cat_suffixes = ['full', 'sparse']
+    cat_suffixes = ['full', 'color_gap_2', 'color_gap_4', 'color_gap_7']
     color_gap = True
     train_df_list = []
     test_df_list = []
+
     for suffix in cat_suffixes:
         train_df_list.append(pd.read_csv('../data/train_results_%s.csv' % suffix))
         test_df_list.append(pd.read_csv('../data/test_results_%s.csv' % suffix))
@@ -132,5 +175,29 @@ if __name__ == "__main__":
 
     plot_multiple_results(train_df_list, test_df_list, cat_suffixes, out_str)
 
-#    if color_gap is True:
-#        cat_df_list[]
+    if color_gap is True:
+
+        train_df_list = []
+        test_df_list = []
+
+        for suffix in cat_suffixes:
+
+            train_df = pd.read_csv('../data/train_results_%s.csv' % suffix)
+            test_df = pd.read_csv('../data/test_results_%s.csv' % suffix)
+
+            if suffix == 'full':
+                train_df_list.append(train_df)
+                test_df_list.append(test_df)
+            else:
+                label_list = np.genfromtxt('../data/test_labels_%s.dat' % suffix)
+                train_df_list.append(train_df)
+                keep_idx = np.where(label_list == int(suffix[-1]))
+                test_df = test_df.iloc[keep_idx].reset_index(drop=True)
+                print(len(test_df))
+                test_df_list.append(test_df)
+
+    out_str = 'compare_gap'
+    for suffix in cat_suffixes:
+        out_str += '_%s' % suffix
+
+    plot_gap_results(train_df_list, test_df_list, cat_suffixes, out_str)

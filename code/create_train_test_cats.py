@@ -139,8 +139,6 @@ class create_cats():
         print('Color group histogram: ')
         print(np.histogram(train_labels, bins=color_groups))
 
-        label_list = np.concatenate((train_labels, test_labels))
-
         if choose_out is None:
             choose_out = random_state.randint(0, high=color_groups)
         print('Removing Color Group %i' % choose_out)
@@ -181,8 +179,10 @@ class create_cats():
         test_input.to_csv(os.path.join(out_dir,
                                        'test_cat_%s.dat' % out_suffix),
                           index=False)
-        np.savetxt(os.path.join(out_dir, 'group_labels_%s.dat' % out_suffix),
-                   label_list)
+        np.savetxt(os.path.join(out_dir, 'train_labels_%s.dat' % out_suffix),
+                   train_labels)
+        np.savetxt(os.path.join(out_dir, 'test_labels_%s.dat' % out_suffix),
+                   test_labels)
 
 
 if __name__ == "__main__":
@@ -199,5 +199,5 @@ if __name__ == "__main__":
     # cc.create_base_cats('full', 500000, out_dir='/home/brycek/sd_card/pam/data')
     # cc.create_sparse_cats('sparse', 500000, sparsity=5,
     #                       out_dir='/home/brycek/sd_card/pam/data')
-    cc.create_color_gap_cats('color_gap_7', 500000, 8, choose_out=7, plot_color=False,
+    cc.create_color_gap_cats('color_gap_2', 500000, 8, choose_out=2, plot_color=False,
                              out_dir='/home/brycek/sd_card/pam/data', random_state=17)
