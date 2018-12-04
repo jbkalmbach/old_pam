@@ -1,9 +1,10 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from calc_metrics import point_metrics
 
 
-def plot_pz_results(train_true, train_photo_z, test_true, test_photo_z,
+def plot_single_results(train_true, train_photo_z, test_true, test_photo_z,
                     outname, z_high=3.5, n_bins=15):
 
     # Plot scatter plots
@@ -55,3 +56,81 @@ def plot_pz_results(train_true, train_photo_z, test_true, test_photo_z,
 
     plt.tight_layout()
     plt.savefig('%s.pdf' % outname)
+
+def plot_multiple_results(train_results_list, test_results_list, 
+                          suffixes, outname, z_high=3.5, n_bins=15):
+
+    fig = plt.figure(figsize=(12,12))
+
+    fig.add_subplot(2, 2, 1)
+
+    pm = point_metrics()
+
+    for idx in range(len(suffixes)):
+        bias = pm.photo_z_robust_bias(train_results_list[idx]['photo_z'],
+                                      train_results_list[idx]['true_z'],
+                                      z_high, n_bins)
+        plt.plot(np.linspace(0, z_high, n_bins), bias, label=suffixes[idx])
+    plt.xlabel('True Z')
+    plt.ylabel('Robust Bias')
+    plt.title('Training Set Bias')
+    plt.legend()
+
+    fig.add_subplot(2, 2, 2)
+
+    for idx in range(len(suffixes)):
+        stdev_iqr = pm.photo_z_robust_stdev(train_results_list[idx]['photo_z'],
+                                            train_results_list[idx]['true_z'],
+                                            z_high, n_bins)
+        plt.plot(np.linspace(0, z_high, n_bins), stdev_iqr, label=suffixes[idx])
+    plt.xlabel('True Z')
+    plt.ylabel('Robust Standard Deviation')
+    plt.title('Training Set Standard Deviation')
+
+    fig.add_subplot(2, 2, 3)
+
+    pm = point_metrics()
+
+    for idx in range(len(suffixes)):
+        bias = pm.photo_z_robust_bias(test_results_list[idx]['photo_z'],
+                                      test_results_list[idx]['true_z'],
+                                      z_high, n_bins)
+        plt.plot(np.linspace(0, z_high, n_bins), bias, label=suffixes[idx])
+    plt.xlabel('True Z')
+    plt.ylabel('Robust Bias')
+    plt.title('Test Set Bias')
+    plt.legend()
+
+    fig.add_subplot(2, 2, 4)
+
+    for idx in range(len(suffixes)):
+        stdev_iqr = pm.photo_z_robust_stdev(test_results_list[idx]['photo_z'],
+                                            test_results_list[idx]['true_z'],
+                                            z_high, n_bins)
+        plt.plot(np.linspace(0, z_high, n_bins), stdev_iqr, label=suffixes[idx])
+    plt.xlabel('True Z')
+    plt.ylabel('Robust Standard Deviation')
+    plt.title('Test Set Standard Deviaiton')
+
+    plt.tight_layout()
+    plt.savefig('../data/%s.pdf' % outname)
+
+if __name__ == "__main__":
+
+    cat_suffixes = ['full', 'sparse']
+    #cat_suffixes = ['full', 'color_gap_4', 'color_gap_7']
+    color_gap = True
+    train_df_list = []
+    test_df_list = []
+    for suffix in cat_suffixes:
+        train_df_list.append(pd.read_csv('../data/train_results_%s.csv' % suffix))
+        test_df_list.append(pd.read_csv('../data/test_results_%s.csv' % suffix))
+
+    out_str = 'compare'
+    for suffix in cat_suffixes:
+        out_str += '_%s' % suffix
+
+    plot_multiple_results(train_df_list, test_df_list, cat_suffixes, out_str)
+
+#    if color_gap is True:
+#        cat_df_list[]
