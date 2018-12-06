@@ -79,7 +79,7 @@ class create_cats():
 
         # If train_len < 1 then it is a fraction of catalog
         if train_len < 1.0:
-            train_len = int(train_len*len(pz_cat))
+            train_len = int(train_len*len(cat_df))
         test_len = len(cat_df) - train_len
 
         train_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
@@ -104,10 +104,10 @@ class create_cats():
                                        'test_cat_%s.dat' % out_suffix),
                           index=False)
 
-    def create_color_cut_cats(self, out_suffix, train_len, color_groups,
-                              choose_out=None, out_dir='.', plot_color=True,
-                              random_state=None,
-                              cc_plot_name='color_cut_color_color'):
+    def create_color_group_cats(self, out_suffix, train_len, color_groups,
+                                choose_out=None, out_dir='.', plot_color=True,
+                                random_state=None,
+                                cc_plot_name='group_cut_color_color'):
 
         cat_df = pd.DataFrame(self.get_catalog())
 
@@ -150,7 +150,7 @@ class create_cats():
                                                'i', 'z', 'y']].values,
                                   os.path.join(out_dir,
                                                '%s.pdf' % cc_plot_name))
-            fig = plt.figure(figsize=(12,12))
+            fig = plt.figure(figsize=(12, 12))
             color_names = ['u-g', 'g-r', 'r-i', 'i-z', 'z-y']
 
             for color_idx in range(4):
@@ -165,10 +165,88 @@ class create_cats():
                 plt.xlabel(color_names[color_idx])
                 plt.ylabel(color_names[color_idx+1])
                 plt.colorbar()
-            
+
             plt.tight_layout()
             plt.savefig(os.path.join(out_dir, 'color_gap_groups.pdf'))
 
+        train_len = len(train_input)
+        print('Training set size: %i. Test set size: %i.' % (train_len,
+                                                             test_len))
+
+        train_input.to_csv(os.path.join(out_dir,
+                                        'train_cat_%s.dat' % out_suffix),
+                           index=False)
+        test_input.to_csv(os.path.join(out_dir,
+                                       'test_cat_%s.dat' % out_suffix),
+                          index=False)
+        np.savetxt(os.path.join(out_dir, 'train_labels_%s.dat' % out_suffix),
+                   train_labels)
+        np.savetxt(os.path.join(out_dir, 'test_labels_%s.dat' % out_suffix),
+                   test_labels)
+
+    def create_color_cut_cats(self, out_suffix, train_len,
+                              cut_index, cut_low, cut_high, sparsity=None,
+                              out_dir='.', plot_color=True,
+                              cc_plot_name='color_cut_color_color'):
+
+        cat_df = pd.DataFrame(self.get_catalog())
+
+        if ((len(cut_index) != len(cut_low)) |
+           (len(cut_low) != len(cut_high))):
+            raise ValueError('Cut Index, Cut Low and Cut High lists ' +
+                             'must be equal length')
+
+        if sparsity is not None:
+            if len(sparsity) != len(cut_index):
+                raise ValueError('If sparsity is not None must be list with' +
+                                 ' same length as Cut Index')
+        else:
+            sparsity = [None]*len(cut_index)
+
+        # If train_len < 1 then it is a fraction of catalog
+        if train_len < 1.0:
+            train_len = int(train_len*len(cat_df))
+        test_len = len(cat_df) - train_len
+
+        train_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
+                              'z', 'y']].iloc[:train_len]
+        test_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
+                             'z', 'y']].iloc[train_len:]
+
+        cat_colors = cat_df[['u', 'g', 'r', 'i', 'z', 'y']].values
+        train_colors = cat_colors[:train_len, :-1] - cat_colors[:train_len, 1:]
+        test_colors = cat_colors[train_len:, :-1] - cat_colors[train_len, 1:]
+
+        train_labels = np.zeros(train_len)
+        test_labels = np.zeros(test_len)
+
+        # Cut out all points in color space
+        for color_val, color_low, color_high, sparse_factor in zip(
+                cut_index, cut_low, cut_high, sparsity):
+            print(color_val, color_low, color_high)
+
+            train_cut_idx = np.where((train_colors[:, color_val]
+                                      >= color_low) &
+                                     (train_colors[:, color_val]
+                                      <= color_high))[0]
+            test_cut_idx = np.where((test_colors[:, color_val] >= color_low) &
+                                    (test_colors[:, color_val]
+                                     <= color_high))[0]
+
+            if sparse_factor is not None:
+                train_cut_idx = train_cut_idx[::sparse_factor]
+
+            train_labels[train_cut_idx] = 1
+            test_labels[test_cut_idx] = 1
+
+        if plot_color is True:
+            self.plot_color_color(train_input[['u', 'g', 'r',
+                                               'i', 'z', 'y']].values[
+                                                np.where(train_labels == 0)],
+                                  os.path.join(out_dir,
+                                               '%s.pdf' % cc_plot_name))
+
+        train_input = train_input.iloc[np.where(train_labels == 0)]
         train_len = len(train_input)
         print('Training set size: %i. Test set size: %i.' % (train_len,
                                                              test_len))
@@ -193,7 +271,7 @@ class create_cats():
 
         # If train_len < 1 then it is a fraction of catalog
         if train_len < 1.0:
-            train_len = int(train_len*len(pz_cat))
+            train_len = int(train_len*len(cat_df))
         test_len = len(cat_df) - train_len
 
         train_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
@@ -207,13 +285,14 @@ class create_cats():
                                             (z_cut_low, z_cut_high))
         else:
             keep_idx = np.where((train_input['redshift'].values >= z_cut_low) &
-                                (train_input['redshift'].values <= z_cut_high))[0]
+                                (train_input['redshift'].values
+                                 <= z_cut_high))[0]
             # Thin redshift space out by factor of `sparsity`.
             final_idx = []
             for idx in range(train_len):
                 if idx not in keep_idx:
                     final_idx.append(idx)
-            
+
             keep_idx = keep_idx[::sparsity]
             for idx in keep_idx:
                 final_idx.append(idx)

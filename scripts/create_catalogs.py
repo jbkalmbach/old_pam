@@ -14,9 +14,10 @@ if __name__ == "__main__":
     # cc.create_base_cats('full', 500000, out_dir='/home/brycek/sd_card/pam/data')
     # cc.create_sparse_cats('sparse', 500000, sparsity=5,
     #                       out_dir='/home/brycek/sd_card/pam/data')
-    # cc.create_color_cut_cats('color_gap_2', 500000, 8, choose_out=2, plot_color=False,
-    #                          out_dir='/home/brycek/sd_card/pam/data', random_state=17)
-    cc.create_redshift_cut_cats('z_2_cut', 500000, 2.0, 5.0, sparsity=4,
-                                out_dir='/home/brycek/sd_card/pam/data',
-                                plot_color=False,
-                                cc_plot_name='redshift_cut_color_color')
+    # cc.create_color_group_cats('color_gap_2', 500000, 8, choose_out=2, plot_color=False,
+    #                            out_dir='/home/brycek/sd_card/pam/data', random_state=17)
+    cc.create_color_cut_cats('cut_ug_3', 500000, [0,2], [3,-100], [500,-0.5], [2, 2])
+    # cc.create_redshift_cut_cats('z_2_cut', 500000, 2.0, 5.0, sparsity=4,
+    #                             out_dir='/home/brycek/sd_card/pam/data',
+    #                             plot_color=False,
+    #                             cc_plot_name='redshift_cut_color_color')

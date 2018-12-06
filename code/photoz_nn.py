@@ -1,10 +1,7 @@
-import os
-import sys
 import torch
 import torch.nn.functional as F
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 class Net(torch.nn.Module):
@@ -29,6 +26,7 @@ class Net(torch.nn.Module):
         x = self.predict(x)
 
         return x
+
 
 class photoz_nn():
 
@@ -78,7 +76,7 @@ class photoz_nn():
             for batch_start in range(0, train_len, batch_size):
 
                 nn_input = train_input[batch_start:
-                                    batch_start+batch_size]
+                                       batch_start+batch_size]
 
                 # If last batch is not of batch_size change batch_size
                 if len(nn_input) < batch_size:
@@ -88,9 +86,9 @@ class photoz_nn():
 
                 true_output = train_true[batch_start: batch_start+batch_size]
 
-                true_output = torch.tensor(true_output, 
-                                        dtype=torch.float).reshape(batch_size,
-                                                                    1)
+                true_output = torch.tensor(true_output,
+                                           dtype=torch.float).reshape(
+                                                batch_size, 1)
 
                 prediction = net(nn_input)
 
