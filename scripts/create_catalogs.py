@@ -1,3 +1,4 @@
+import os
 from create_cats import create_cats
 
 if __name__ == "__main__":

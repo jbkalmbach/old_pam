@@ -5,8 +5,8 @@ from calc_metrics import point_metrics
 
 class plot_pz_nn():
 
-    def plot_single_results(train_df, test_df,
-                        outname, z_high=3.5, n_bins=15):
+    def plot_single_results(self, train_df, test_df,
+                            outname, z_high=3.5, n_bins=15):
 
         # Plot scatter plots
         fig = plt.figure(figsize=(12, 12))
@@ -56,10 +56,10 @@ class plot_pz_nn():
         plt.ylabel('Robust Standard Deviation')
 
         plt.tight_layout()
-        plt.savefig('%s.pdf' % outname)
+        plt.savefig(outname)
 
-    def plot_multiple_results(train_results_list, test_results_list, 
-                            suffixes, outname, z_high=3.5, n_bins=15):
+    def plot_multiple_results(self, train_results_list, test_results_list, 
+                              suffixes, outname, z_high=3.5, n_bins=15):
 
         fig = plt.figure(figsize=(12,12))
 
@@ -114,10 +114,10 @@ class plot_pz_nn():
         plt.title('Test Set Standard Deviaiton')
 
         plt.tight_layout()
-        plt.savefig('../data/%s.pdf' % outname)
+        plt.savefig(outname)
 
-    def plot_gap_results(train_results_list, test_results_list, 
-                        suffixes, outname, z_high=3.5, n_bins=15):
+    def plot_gap_results(self, train_results_list, test_results_list, 
+                         suffixes, outname, z_high=3.5, n_bins=15):
 
         fig = plt.figure(figsize=(12,12))
 
@@ -156,5 +156,4 @@ class plot_pz_nn():
         plt.title('Test Set Standard Deviaiton')
 
         plt.tight_layout()
-        plt.savefig('../data/%s.pdf' % outname)
-
+        plt.savefig(outname)

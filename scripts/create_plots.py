@@ -1,3 +1,4 @@
+import pandas as pd
 from plot_pz_nn import plot_pz_nn
 
 if __name__ == "__main__":
@@ -15,13 +16,15 @@ if __name__ == "__main__":
         train_df_list.append(pd.read_csv('../data/train_results_%s.csv' % suffix))
         test_df_list.append(pd.read_csv('../data/test_results_%s.csv' % suffix))
 
-        plot_pz.plot_single_results(train_df_list[-1], test_df_list[-1], suffix)
+        plot_pz.plot_single_results(train_df_list[-1], test_df_list[-1],
+                                    '../data/%s.pdf' % suffix)
 
     out_str = 'compare'
     for suffix in cat_suffixes:
         out_str += '_%s' % suffix
 
-    plot_pz.plot_multiple_results(train_df_list, test_df_list, cat_suffixes, out_str)
+    plot_pz.plot_multiple_results(train_df_list, test_df_list, cat_suffixes,
+                                  '../data/%s.pdf' % out_str)
 
     if color_gap is True:
 
@@ -48,4 +51,5 @@ if __name__ == "__main__":
         for suffix in cat_suffixes:
             out_str += '_%s' % suffix
 
-        plot_pz.plot_gap_results(train_df_list, test_df_list, cat_suffixes, out_str)
+        plot_pz.plot_gap_results(train_df_list, test_df_list, cat_suffixes,
+                                 '../data/%s.pdf' % out_str)

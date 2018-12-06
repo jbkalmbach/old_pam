@@ -18,13 +18,13 @@ if __name__ == "__main__":
 
     net = pz_nn.train_model(train_colors, train_specz)
 
-    full_train_pz = pz_nn.run_model(net, train_colors)
-    full_test_pz = pz_nn.run_model(net, test_colors)
+    train_photoz = pz_nn.run_model(net, train_colors)
+    test_photoz = pz_nn.run_model(net, test_colors)
 
     pz_nn.save_model(net, '../data/pz_network_%s.pt' % cat_suffix)
 
     train_results = {'true_z':train_specz.reshape(train_len),
-                     'photo_z': full_train_pz.reshape(train_len)}
+                     'photo_z': train_photoz.reshape(train_len)}
     train_results_df = pd.DataFrame.from_dict(data=train_results)
     test_results = {'true_z':test_specz.reshape(test_len),
                     'photo_z': test_photoz.reshape(test_len)}
