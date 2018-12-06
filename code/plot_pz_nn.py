@@ -160,8 +160,9 @@ def plot_gap_results(train_results_list, test_results_list,
 if __name__ == "__main__":
 
     #cat_suffixes = ['full', 'sparse']
-    cat_suffixes = ['full', 'color_gap_2', 'color_gap_4', 'color_gap_7']
-    color_gap = True
+    #cat_suffixes = ['full', 'color_gap_2', 'color_gap_4', 'color_gap_7']
+    cat_suffixes = ['full', 'high_z_cut', 'z_2_cut']
+    color_gap = False
     train_df_list = []
     test_df_list = []
 
@@ -196,8 +197,8 @@ if __name__ == "__main__":
                 print(len(test_df))
                 test_df_list.append(test_df)
 
-    out_str = 'compare_gap'
-    for suffix in cat_suffixes:
-        out_str += '_%s' % suffix
+        out_str = 'compare_gap'
+        for suffix in cat_suffixes:
+            out_str += '_%s' % suffix
 
-    plot_gap_results(train_df_list, test_df_list, cat_suffixes, out_str)
+        plot_gap_results(train_df_list, test_df_list, cat_suffixes, out_str)

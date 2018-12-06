@@ -104,10 +104,10 @@ class create_cats():
                                        'test_cat_%s.dat' % out_suffix),
                           index=False)
 
-    def create_color_gap_cats(self, out_suffix, train_len, color_groups,
+    def create_color_cut_cats(self, out_suffix, train_len, color_groups,
                               choose_out=None, out_dir='.', plot_color=True,
                               random_state=None,
-                              cc_plot_name='color_gap_color_color'):
+                              cc_plot_name='color_cut_color_color'):
 
         cat_df = pd.DataFrame(self.get_catalog())
 
@@ -184,6 +184,60 @@ class create_cats():
         np.savetxt(os.path.join(out_dir, 'test_labels_%s.dat' % out_suffix),
                    test_labels)
 
+    def create_redshift_cut_cats(self, out_suffix, train_len, z_cut_low,
+                                 z_cut_high, sparsity=None, out_dir='.',
+                                 plot_color=True,
+                                 cc_plot_name='redshift_cut_color_color'):
+
+        cat_df = pd.DataFrame(self.get_catalog())
+
+        # If train_len < 1 then it is a fraction of catalog
+        if train_len < 1.0:
+            train_len = int(train_len*len(pz_cat))
+        test_len = len(cat_df) - train_len
+
+        train_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
+                              'z', 'y']].iloc[:train_len]
+        test_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
+                             'z', 'y']].iloc[train_len:]
+
+        if sparsity is None:
+            # Cut out all points in redshift space
+            train_input = train_input.query('redshift < %f or redshift > %f' %
+                                            (z_cut_low, z_cut_high))
+        else:
+            keep_idx = np.where((train_input['redshift'].values >= z_cut_low) &
+                                (train_input['redshift'].values <= z_cut_high))[0]
+            # Thin redshift space out by factor of `sparsity`.
+            final_idx = []
+            for idx in range(train_len):
+                if idx not in keep_idx:
+                    final_idx.append(idx)
+            
+            keep_idx = keep_idx[::sparsity]
+            for idx in keep_idx:
+                final_idx.append(idx)
+
+            train_input = train_input.iloc[final_idx]
+
+        train_len = len(train_input)
+
+        if plot_color is True:
+            self.plot_color_color(train_input[['u', 'g', 'r',
+                                               'i', 'z', 'y']].values,
+                                  os.path.join(out_dir,
+                                               '%s.pdf' % cc_plot_name))
+
+        print('Training set size: %i. Test set size: %i.' % (train_len,
+                                                             test_len))
+
+        train_input.to_csv(os.path.join(out_dir,
+                                        'train_cat_%s.dat' % out_suffix),
+                           index=False)
+        test_input.to_csv(os.path.join(out_dir,
+                                       'test_cat_%s.dat' % out_suffix),
+                          index=False)
+
 
 if __name__ == "__main__":
 
@@ -191,13 +245,16 @@ if __name__ == "__main__":
              'z', 'y', 'g_abs', 'r_abs']
 
     cat_name = 'Euclid_trim_25p2_3p5.dat'
-    filename = os.path.join('/home/brycek/sd_card/data_augment',
-                            'scripts_bryce/cats',
+    filename = os.path.join(os.environ['PZ_CAT_FOLDER'],
                             cat_name)
 
     cc = create_cats(filename, names)
     # cc.create_base_cats('full', 500000, out_dir='/home/brycek/sd_card/pam/data')
     # cc.create_sparse_cats('sparse', 500000, sparsity=5,
     #                       out_dir='/home/brycek/sd_card/pam/data')
-    cc.create_color_gap_cats('color_gap_2', 500000, 8, choose_out=2, plot_color=False,
-                             out_dir='/home/brycek/sd_card/pam/data', random_state=17)
+    # cc.create_color_cut_cats('color_gap_2', 500000, 8, choose_out=2, plot_color=False,
+    #                          out_dir='/home/brycek/sd_card/pam/data', random_state=17)
+    cc.create_redshift_cut_cats('z_2_cut', 500000, 2.0, 5.0, sparsity=4,
+                                out_dir='/home/brycek/sd_card/pam/data',
+                                plot_color=False,
+                                cc_plot_name='redshift_cut_color_color')
