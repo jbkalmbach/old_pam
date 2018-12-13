@@ -6,7 +6,8 @@ from calc_metrics import point_metrics
 class plot_pz_nn():
 
     def plot_single_results(self, train_df, test_df,
-                            outname, z_high=3.5, n_bins=15):
+                            outname, z_high=3.5, n_bins=15,
+                            density_plot=True):
 
         # Plot scatter plots
         fig = plt.figure(figsize=(12, 12))
@@ -15,27 +16,35 @@ class plot_pz_nn():
 
         train_len = len(train_df)
 
-        plt.hexbin(train_df['true_z'],
-                   train_df['photo_z'], bins='log', cmap='viridis')
+        if density_plot is True:
+            plt.hexbin(train_df['true_z'],
+                       train_df['photo_z'], bins='log', cmap='viridis')
+            plt.colorbar()
+        else:
+            plt.scatter(train_df['true_z'], train_df['photo_z'], alpha=0.2,
+                        s=2)
         plt.plot(np.arange(0, z_high, 0.01), np.arange(0, z_high, 0.01),
                  ls='--', c='r')
         plt.xlabel('True Z')
         plt.ylabel('Photo Z')
         plt.title('Training Results: %i objects' % train_len)
-        plt.colorbar()
 
         fig.add_subplot(2, 2, 2)
 
         test_len = len(test_df)
 
-        plt.hexbin(test_df['true_z'], test_df['photo_z'], bins='log',
-                   cmap='viridis')
+        if density_plot is True:
+            plt.hexbin(test_df['true_z'], test_df['photo_z'], bins='log',
+                       cmap='viridis')
+            plt.colorbar()
+        else:
+            plt.scatter(test_df['true_z'], test_df['photo_z'], alpha=0.2,
+                        s=2)
         plt.plot(np.arange(0, z_high, 0.01), np.arange(0, z_high, 0.01),
                  ls='--', c='r')
         plt.xlabel('True Z')
         plt.ylabel('Photo Z')
         plt.title('Test Results: %i objects' % test_len)
-        plt.colorbar()
 
         fig.add_subplot(2, 2, 3)
 

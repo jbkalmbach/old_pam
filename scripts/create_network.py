@@ -16,8 +16,9 @@ if __name__ == "__main__":
     train_len = len(train_colors)
     test_len = len(test_colors)
 
-    net = pz_nn.train_model(train_colors, train_specz)
+    net = pz_nn.train_model(train_colors, train_specz, 500)
 
+    train_colors, train_specz = pz_nn.load_catalog(train_filename)
     train_photoz = pz_nn.run_model(net, train_colors)
     test_photoz = pz_nn.run_model(net, test_colors)
 

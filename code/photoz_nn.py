@@ -50,7 +50,7 @@ class photoz_nn():
 
         return cat_input, cat_true
 
-    def train_model(self, train_input, train_true):
+    def train_model(self, train_input, train_true, n_epochs):
 
         # Normalize data
         train_mean = np.mean(train_input, axis=0)
@@ -69,7 +69,7 @@ class photoz_nn():
         optimizer = torch.optim.SGD(net.parameters(), lr=0.2)
         loss_func = torch.nn.MSELoss()
 
-        for t in range(500):
+        for t in range(n_epochs):
 
             batch_size = 10000
 
@@ -98,7 +98,7 @@ class photoz_nn():
                 loss.backward()
                 optimizer.step()
 
-            if (t+1) % 5 == 0:
+            if (t+1) % 20 == 0:
                 print('After %i epochs' % (t+1))
                 print(nn_input[2], prediction[2], true_output[2], loss.data)
                 print(nn_input[5], prediction[5], true_output[5], loss.data)

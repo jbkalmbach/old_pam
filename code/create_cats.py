@@ -41,7 +41,11 @@ class create_cats():
 
     def create_base_cats(self, out_suffix, train_len,
                          out_dir='.', plot_color=True,
-                         cc_plot_name='train_color_color'):
+                         cc_plot_name='train_color_color',
+                         random_state=None):
+        
+        if ((type(random_state) is int) | (random_state is None)):
+            rand_state = np.random.RandomState(random_state)
 
         cat_df = pd.DataFrame(self.get_catalog())
 
@@ -50,10 +54,14 @@ class create_cats():
             train_len = int(train_len*len(cat_df))
         test_len = len(cat_df) - train_len
 
+        shuffled_idx = rand_state.choice(np.arange(len(cat_df)),
+                                         size=len(cat_df),
+                                         replace=False)
+                                        
         train_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
-                              'z', 'y']].iloc[:train_len]
+                              'z', 'y']].iloc[shuffled_idx[:train_len]]
         test_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
-                             'z', 'y']].iloc[train_len:]
+                             'z', 'y']].iloc[shuffled_idx[train_len:]]
 
         if plot_color is True:
             self.plot_color_color(train_input[['u', 'g', 'r',
@@ -72,7 +80,7 @@ class create_cats():
                           index=False)
 
     def create_sparse_cats(self, out_suffix, train_len, sparsity=2,
-                           out_dir='.', plot_color=True,
+                           out_dir='.', plot_color=True, save_test=False,
                            cc_plot_name='sparse_color_color'):
 
         cat_df = pd.DataFrame(self.get_catalog())
@@ -100,13 +108,14 @@ class create_cats():
         train_input.to_csv(os.path.join(out_dir,
                                         'train_cat_%s.dat' % out_suffix),
                            index=False)
-        test_input.to_csv(os.path.join(out_dir,
-                                       'test_cat_%s.dat' % out_suffix),
-                          index=False)
+        if save_test is True:
+            test_input.to_csv(os.path.join(out_dir,
+                                           'test_cat_%s.dat' % out_suffix),
+                              index=False)
 
     def create_color_group_cats(self, out_suffix, train_len, color_groups,
                                 choose_out=None, out_dir='.', plot_color=True,
-                                random_state=None,
+                                random_state=None, save_test=False,
                                 cc_plot_name='group_cut_color_color'):
 
         cat_df = pd.DataFrame(self.get_catalog())
@@ -176,9 +185,10 @@ class create_cats():
         train_input.to_csv(os.path.join(out_dir,
                                         'train_cat_%s.dat' % out_suffix),
                            index=False)
-        test_input.to_csv(os.path.join(out_dir,
-                                       'test_cat_%s.dat' % out_suffix),
-                          index=False)
+        if save_test is True:
+            test_input.to_csv(os.path.join(out_dir,
+                                           'test_cat_%s.dat' % out_suffix),
+                              index=False)
         np.savetxt(os.path.join(out_dir, 'train_labels_%s.dat' % out_suffix),
                    train_labels)
         np.savetxt(os.path.join(out_dir, 'test_labels_%s.dat' % out_suffix),
@@ -186,7 +196,7 @@ class create_cats():
 
     def create_color_cut_cats(self, out_suffix, train_len,
                               cut_index, cut_low, cut_high, sparsity=None,
-                              out_dir='.', plot_color=True,
+                              out_dir='.', plot_color=True, save_test=False,
                               cc_plot_name='color_cut_color_color'):
 
         cat_df = pd.DataFrame(self.get_catalog())
@@ -254,9 +264,10 @@ class create_cats():
         train_input.to_csv(os.path.join(out_dir,
                                         'train_cat_%s.dat' % out_suffix),
                            index=False)
-        test_input.to_csv(os.path.join(out_dir,
-                                       'test_cat_%s.dat' % out_suffix),
-                          index=False)
+        if save_test is True:
+            test_input.to_csv(os.path.join(out_dir,
+                                           'test_cat_%s.dat' % out_suffix),
+                              index=False)
         np.savetxt(os.path.join(out_dir, 'train_labels_%s.dat' % out_suffix),
                    train_labels)
         np.savetxt(os.path.join(out_dir, 'test_labels_%s.dat' % out_suffix),
@@ -264,7 +275,7 @@ class create_cats():
 
     def create_redshift_cut_cats(self, out_suffix, train_len, z_cut_low,
                                  z_cut_high, sparsity=None, out_dir='.',
-                                 plot_color=True,
+                                 plot_color=True, save_test=False,
                                  cc_plot_name='redshift_cut_color_color'):
 
         cat_df = pd.DataFrame(self.get_catalog())
@@ -313,6 +324,7 @@ class create_cats():
         train_input.to_csv(os.path.join(out_dir,
                                         'train_cat_%s.dat' % out_suffix),
                            index=False)
-        test_input.to_csv(os.path.join(out_dir,
-                                       'test_cat_%s.dat' % out_suffix),
-                          index=False)
+        if save_test is True:
+            test_input.to_csv(os.path.join(out_dir,
+                                           'test_cat_%s.dat' % out_suffix),
+                              index=False)
