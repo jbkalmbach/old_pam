@@ -109,7 +109,8 @@ class plot_pz_nn():
         pm = point_metrics()
 
         for idx in range(len(suffixes)):
-            bias = pm.photo_z_robust_bias(test_results_list[idx]['photo_z'],
+            #bias = pm.photo_z_robust_bias(test_results_list[idx]['photo_z'],
+            bias = pm.photo_z_bias(test_results_list[idx]['photo_z'],
                                           test_results_list[idx]['true_z'],
                                           z_high, n_bins)
             plt.plot(np.linspace(z_low, z_high, n_bins), bias, label=suffixes[idx])

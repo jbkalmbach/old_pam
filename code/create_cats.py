@@ -94,7 +94,7 @@ class create_cats():
             train_len = int(train_len*len(cat_df))
         test_len = len(cat_df) - train_len
 
-        shuffled_idx = rand_state.choice(np.arange(len(cat_df)),
+        shuffled_idx = random_state.choice(np.arange(len(cat_df)),
                                          size=len(cat_df),
                                          replace=False)
                                         
