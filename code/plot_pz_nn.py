@@ -102,7 +102,7 @@ class plot_pz_nn():
                      label=suffixes[idx])
         plt.xlabel('True Z')
         plt.ylabel('Robust Standard Deviation')
-        plt.title('Training Set Standard Deviaiton')
+        plt.title('Training Set Standard Deviation')
 
         fig.add_subplot(2, 2, 3)
 
@@ -130,7 +130,7 @@ class plot_pz_nn():
                      label=suffixes[idx])
         plt.xlabel('True Z')
         plt.ylabel('Robust Standard Deviation')
-        plt.title('Test Set Standard Deviaiton')
+        plt.title('Test Set Standard Deviation')
 
         plt.tight_layout()
         plt.savefig(outname)
@@ -187,7 +187,7 @@ class plot_pz_nn():
                      label=suffixes[idx])
         plt.xlabel('True Z')
         plt.ylabel('Robust Standard Deviation')
-        plt.title('Test Set Standard Deviaiton')
+        plt.title('Test Set Standard Deviation')
 
         plt.tight_layout()
         plt.savefig(outname)
