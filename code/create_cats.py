@@ -45,7 +45,7 @@ class create_cats():
                          random_state=None):
         
         if ((type(random_state) is int) | (random_state is None)):
-            rand_state = np.random.RandomState(random_state)
+            random_state = np.random.RandomState(random_state)
 
         cat_df = pd.DataFrame(self.get_catalog())
 
@@ -54,9 +54,9 @@ class create_cats():
             train_len = int(train_len*len(cat_df))
         test_len = len(cat_df) - train_len
 
-        shuffled_idx = rand_state.choice(np.arange(len(cat_df)),
-                                         size=len(cat_df),
-                                         replace=False)
+        shuffled_idx = random_state.choice(np.arange(len(cat_df)),
+                                           size=len(cat_df),
+                                           replace=False)
                                         
         train_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
                               'z', 'y']].iloc[shuffled_idx[:train_len]]
@@ -81,8 +81,12 @@ class create_cats():
 
     def create_sparse_cats(self, out_suffix, train_len, sparsity=2,
                            out_dir='.', plot_color=True, save_test=False,
-                           cc_plot_name='sparse_color_color'):
+                           cc_plot_name='sparse_color_color',
+                           random_state=None):
 
+        if ((type(random_state) is int) | (random_state is None)):
+            random_state = np.random.RandomState(random_state)
+        
         cat_df = pd.DataFrame(self.get_catalog())
 
         # If train_len < 1 then it is a fraction of catalog
@@ -90,10 +94,14 @@ class create_cats():
             train_len = int(train_len*len(cat_df))
         test_len = len(cat_df) - train_len
 
+        shuffled_idx = random_state.choice(np.arange(len(cat_df)),
+                                         size=len(cat_df),
+                                         replace=False)
+                                        
         train_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
-                              'z', 'y']].iloc[:train_len:sparsity]
+                              'z', 'y']].iloc[shuffled_idx[:train_len:sparsity]]
         test_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
-                             'z', 'y']].iloc[train_len:]
+                             'z', 'y']].iloc[shuffled_idx[train_len:]]
 
         if plot_color is True:
             self.plot_color_color(train_input[['u', 'g', 'r',
@@ -130,14 +138,20 @@ class create_cats():
             train_len = int(train_len*len(cat_df))
         test_len = len(cat_df) - train_len
 
+        shuffled_idx = random_state.choice(np.arange(len(cat_df)),
+                                           size=len(cat_df),
+                                           replace=False)
+                                        
         train_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
-                              'z', 'y']].iloc[:train_len]
+                              'z', 'y']].iloc[shuffled_idx[:train_len]]
         test_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
-                             'z', 'y']].iloc[train_len:]
+                             'z', 'y']].iloc[shuffled_idx[train_len:]]
 
         cat_colors = cat_df[['u', 'g', 'r', 'i', 'z', 'y']].values
-        train_colors = cat_colors[:train_len, :-1] - cat_colors[:train_len, 1:]
-        test_colors = cat_colors[train_len:, :-1] - cat_colors[train_len, 1:]
+        train_colors = cat_colors[shuffled_idx[:train_len], :-1] -\
+            cat_colors[shuffled_idx[:train_len], 1:]
+        test_colors = cat_colors[shuffled_idx[train_len:], :-1] -\
+            cat_colors[shuffled_idx[train_len:], 1:]
 
         kmeans = KMeans(n_clusters=color_groups,
                         random_state=random_state).fit(train_colors)
@@ -197,8 +211,12 @@ class create_cats():
     def create_color_cut_cats(self, out_suffix, train_len,
                               cut_index, cut_low, cut_high, sparsity=None,
                               out_dir='.', plot_color=True, save_test=False,
-                              cc_plot_name='color_cut_color_color'):
+                              cc_plot_name='color_cut_color_color',
+                              random_state=None):
 
+        if ((type(random_state) is int) | (random_state is None)):
+            random_state = np.random.RandomState(random_state)
+        
         cat_df = pd.DataFrame(self.get_catalog())
 
         if ((len(cut_index) != len(cut_low)) |
@@ -218,15 +236,20 @@ class create_cats():
             train_len = int(train_len*len(cat_df))
         test_len = len(cat_df) - train_len
 
+        shuffled_idx = random_state.choice(np.arange(len(cat_df)),
+                                           size=len(cat_df),
+                                           replace=False)
+                                        
         train_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
-                              'z', 'y']].iloc[:train_len]
+                              'z', 'y']].iloc[shuffled_idx[:train_len]]
         test_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
-                             'z', 'y']].iloc[train_len:]
+                             'z', 'y']].iloc[shuffled_idx[train_len:]]
 
         cat_colors = cat_df[['u', 'g', 'r', 'i', 'z', 'y']].values
-        train_colors = cat_colors[:train_len, :-1] - cat_colors[:train_len, 1:]
-        test_colors = cat_colors[train_len:, :-1] - cat_colors[train_len, 1:]
-
+        train_colors = cat_colors[shuffled_idx[:train_len], :-1] -\
+            cat_colors[shuffled_idx[:train_len], 1:]
+        test_colors = cat_colors[shuffled_idx[train_len:], :-1] -\
+            cat_colors[shuffled_idx[train_len:], 1:]
         train_labels = np.zeros(train_len)
         test_labels = np.zeros(test_len)
 
@@ -238,13 +261,14 @@ class create_cats():
             train_cut_idx = np.where((train_colors[:, color_val]
                                       >= color_low) &
                                      (train_colors[:, color_val]
-                                      <= color_high))[0]
+                                      < color_high))[0]
             test_cut_idx = np.where((test_colors[:, color_val] >= color_low) &
                                     (test_colors[:, color_val]
-                                     <= color_high))[0]
+                                     < color_high))[0]
 
             if sparse_factor is not None:
-                train_cut_idx = train_cut_idx[::sparse_factor]
+                train_cut_idx = np.delete(train_cut_idx,
+                                          slice(None, None, sparse_factor))
 
             train_labels[train_cut_idx] = 1
             test_labels[test_cut_idx] = 1
@@ -273,11 +297,101 @@ class create_cats():
         np.savetxt(os.path.join(out_dir, 'test_labels_%s.dat' % out_suffix),
                    test_labels)
 
+    def create_mag_cut_cats(self, out_suffix, train_len,
+                            cut_band, cut_low, cut_high, sparsity=None,
+                            out_dir='.', plot_color=True, save_test=False,
+                            cc_plot_name='mag_cut_color_color',
+                            random_state=None):
+
+        if ((type(random_state) is int) | (random_state is None)):
+            random_state = np.random.RandomState(random_state)
+        
+        cat_df = pd.DataFrame(self.get_catalog())
+
+        if ((len(cut_band) != len(cut_low)) |
+           (len(cut_low) != len(cut_high))):
+            raise ValueError('Cut Index, Cut Low and Cut High lists ' +
+                             'must be equal length')
+
+        if sparsity is not None:
+            if len(sparsity) != len(cut_band):
+                raise ValueError('If sparsity is not None must be list with' +
+                                 ' same length as Cut Index')
+        else:
+            sparsity = [None]*len(cut_band)
+
+        # If train_len < 1 then it is a fraction of catalog
+        if train_len < 1.0:
+            train_len = int(train_len*len(cat_df))
+        test_len = len(cat_df) - train_len
+
+        shuffled_idx = random_state.choice(np.arange(len(cat_df)),
+                                           size=len(cat_df),
+                                           replace=False)
+                                        
+        train_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
+                              'z', 'y']].iloc[shuffled_idx[:train_len]]
+        test_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
+                             'z', 'y']].iloc[shuffled_idx[train_len:]]
+        mag_index_dict = {'u':1, 'g':2, 'r':3, 'i':4, 'z':5, 'y':6}
+        train_labels = np.zeros(train_len)
+        test_labels = np.zeros(test_len)
+
+        # Cut out all points in color space
+        for mag_on, mag_low, mag_high, sparse_factor in zip(
+                cut_band, cut_low, cut_high, sparsity):
+
+            mag_val = mag_index_dict[mag_on]
+            print(mag_val, mag_low, mag_high, sparse_factor)
+
+            train_cut_idx = np.where((train_input.iloc[:, mag_val]
+                                      >= mag_low) &
+                                     (train_input.iloc[:, mag_val]
+                                      < mag_high))[0]
+            test_cut_idx = np.where((test_input.iloc[:, mag_val] >= mag_low) &
+                                    (test_input.iloc[:, mag_val]
+                                     < mag_high))[0]
+
+            if sparse_factor is not None:
+                train_cut_idx = np.delete(train_cut_idx,
+                                          slice(None, None, sparse_factor))
+
+            train_labels[train_cut_idx] = 1
+            test_labels[test_cut_idx] = 1
+
+        if plot_color is True:
+            self.plot_color_color(train_input[['u', 'g', 'r',
+                                               'i', 'z', 'y']].values[
+                                                np.where(train_labels == 0)],
+                                  os.path.join(out_dir,
+                                               '%s.pdf' % cc_plot_name))
+
+        train_input = train_input.iloc[np.where(train_labels == 0)]
+        train_len = len(train_input)
+        print('Training set size: %i. Test set size: %i.' % (train_len,
+                                                             test_len))
+
+        train_input.to_csv(os.path.join(out_dir,
+                                        'train_cat_%s.dat' % out_suffix),
+                           index=False)
+        if save_test is True:
+            test_input.to_csv(os.path.join(out_dir,
+                                           'test_cat_%s.dat' % out_suffix),
+                              index=False)
+        np.savetxt(os.path.join(out_dir, 'train_labels_%s.dat' % out_suffix),
+                   train_labels)
+        np.savetxt(os.path.join(out_dir, 'test_labels_%s.dat' % out_suffix),
+                   test_labels)
+        
     def create_redshift_cut_cats(self, out_suffix, train_len, z_cut_low,
                                  z_cut_high, sparsity=None, out_dir='.',
                                  plot_color=True, save_test=False,
-                                 cc_plot_name='redshift_cut_color_color'):
+                                 cc_plot_name='redshift_cut_color_color',
+                                 random_state=None):
 
+        if ((type(random_state) is int) | (random_state is None)):
+            random_state = np.random.RandomState(random_state)
+        
         cat_df = pd.DataFrame(self.get_catalog())
 
         # If train_len < 1 then it is a fraction of catalog
@@ -285,10 +399,14 @@ class create_cats():
             train_len = int(train_len*len(cat_df))
         test_len = len(cat_df) - train_len
 
+        shuffled_idx = random_state.choice(np.arange(len(cat_df)),
+                                           size=len(cat_df),
+                                           replace=False)
+                                        
         train_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
-                              'z', 'y']].iloc[:train_len]
+                              'z', 'y']].iloc[shuffled_idx[:train_len]]
         test_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
-                             'z', 'y']].iloc[train_len:]
+                             'z', 'y']].iloc[shuffled_idx[train_len:]]
 
         if sparsity is None:
             # Cut out all points in redshift space

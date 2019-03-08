@@ -19,6 +19,9 @@ class Net(torch.nn.Module):
         self.hidden_2 = torch.nn.Linear(n_hidden_nodes, n_hidden_nodes)
         self.predict = torch.nn.Linear(n_hidden_nodes, n_output)
 
+        self.train_mean = None
+        self.train_stdev = None
+
     def forward(self, x):
 
         x = F.relu(self.hidden_1(x))
@@ -66,17 +69,18 @@ class photoz_nn():
             net = Net(6, 20, 1)
         print(net)
 
-        optimizer = torch.optim.SGD(net.parameters(), lr=0.2)
+        optimizer = torch.optim.SGD(net.parameters(), lr=0.01)
         loss_func = torch.nn.MSELoss()
 
         for t in range(n_epochs):
 
-            batch_size = 10000
+            batch_size = 128
+            batch_indices = torch.randperm(train_len).numpy()
 
             for batch_start in range(0, train_len, batch_size):
 
-                nn_input = train_input[batch_start:
-                                       batch_start+batch_size]
+                batch_idx = batch_indices[batch_start:batch_start+batch_size]
+                nn_input = train_input[batch_idx]
 
                 # If last batch is not of batch_size change batch_size
                 if len(nn_input) < batch_size:
@@ -84,7 +88,7 @@ class photoz_nn():
 
                 nn_input = torch.tensor(nn_input, dtype=torch.float)
 
-                true_output = train_true[batch_start: batch_start+batch_size]
+                true_output = train_true[batch_idx]
 
                 true_output = torch.tensor(true_output,
                                            dtype=torch.float).reshape(
@@ -123,4 +127,20 @@ class photoz_nn():
     def save_model(self, net, filename):
 
         # Save outputs
-        torch.save(net.state_dict(), filename)
+        torch.save({'model_state_dict': net.state_dict(),
+                    'model_train_mean': net.train_mean,
+                    'model_train_stdev': net.train_stdev}, filename)
+
+    def load_model(self, filename):
+
+        if self.use_colors is True:
+            net = Net(5, 20, 1)
+        else:
+            net = Net(6, 20, 1)
+
+        checkpoint = torch.load(filename)
+        net.load_state_dict(checkpoint['model_state_dict'])
+        net.train_mean = checkpoint['model_train_mean']
+        net.train_stdev = checkpoint['model_train_stdev']
+
+        return net
