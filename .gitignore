@@ -1,4 +1,5 @@
 # jupyter notebook checkpoints
+.ipynb_checkpoints
 code/.ipynb_checkpoints
 scripts/.ipynb_checkpoints
 
