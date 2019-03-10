@@ -17,4 +17,4 @@ if __name__ == "__main__":
 
     pz_gan.train_gan(train_cat, n_epochs, plot_suffix=train_suffix)
     gan_cat_df = pz_gan.create_gan_cat(10000)
-    gan_cat_df.to_csv('../data/train_cat_gan_%s.dat' % train_suffix)
+    gan_cat_df.to_csv('../data/train_cat_gan_%s.dat' % train_suffix, index=False)
