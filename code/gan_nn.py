@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 import torch
 import corner
 import torch.nn.functional as F
@@ -66,13 +67,14 @@ class gan_nn():
         if seed is not None:
             torch.manual_seed(seed)
         self.use_colors = use_colors
+        self.mag_labels = ['u', 'g', 'r', 'i', 'z', 'y']
 
     def load_catalog(self, cat_file):
 
         cat_df = pd.read_csv(cat_file)
 
-        cat_input = cat_df[['u', 'g',
-                            'r', 'i', 'z', 'y']].values
+        cat_input = cat_df[self.mag_labels].values
+
         # To use colors
         if self.use_colors is True:
             cat_input = cat_input[:, :-1] - cat_input[:, 1:]
@@ -95,7 +97,7 @@ class gan_nn():
                 p.grad = Variable(data.new().resize_as_(data).zero_())
 
     def train_gan(self, train_input, n_epochs,
-                  mini_batch_size=64):
+                  mini_batch_size=64, plot_suffix='test'):
 
         Z_dim = np.shape(train_input)[1]
         print(Z_dim)
@@ -154,7 +156,7 @@ class gan_nn():
                     D_loss.backward()
                     d_optimizer.step()
                 
-                self.reset_grad(params)
+                    self.reset_grad(params)
                 
                 ### Generator update
                 
@@ -177,30 +179,97 @@ class gan_nn():
                           (epoch_num, it, D_loss, G_loss))
                 if it == 1500:
                     print(D_fake[:10], D_real[:10])
-                    
-            z = Variable(torch.randn(25000, Z_dim))
+
+            z = Variable(torch.randn(len(train_input), Z_dim))
             G_sample = g(z)
             new_sample = G_sample.detach().numpy() * data_std + data_mean
-            epoch_samples.append(new_sample)
 
-        limits = [(-0.05, 3.8), (22, 32), (22, 30), (22, 30),
-                  (22, 30), (22, 30), (22, 30)]
-        labels = ['redshift', 'u', 'g', 'r', 'i', 'z', 'y']
-        fig, axes = plt.subplots(7, 7, figsize=(18, 18))
+        min_vals = np.min(train_input, axis=0) - 0.1
+        max_vals = np.max(train_input, axis=0) + 0.1
+
+        if self.use_colors is True:
+            limits = [(x, y) for x, y in zip(min_vals, max_vals)]
+            labels = ['redshift', 'u-g', 'g-r', 'r-i', 'i-z', 'z-y']
+        else:
+            limits = [(x, y) for x, y in zip(min_vals, max_vals)]
+            labels = ['redshift', 'u', 'g', 'r', 'i', 'z', 'y']
+
+        fig, axes = plt.subplots(Z_dim, Z_dim, figsize=(18, 18))
         corner.corner(new_sample, range=limits, labels=labels, fig=fig,
                       label_kwargs={'size': 20}, plot_datapoints=False)
-        corner.corner(sparse_train_set.values, color='r',
+        corner.corner(train_input, color='r',
                       plot_datapoints=False,
                       fig=fig, range=limits, labels=labels)
         for ax in fig.get_axes():  
-            ax.tick_params(axis='both', labelsize=20)
-        plt.tight_layout()
-        #plt.show()
-        plt.savefig('gan_test.pdf')
+            ax.tick_params(axis='both', labelsize=14)
 
-        z = Variable(torch.randn(200000, Z_dim))
-        G_sample = g(z)
-        new_sample = G_sample.detach().numpy() * data_std + data_mean
-        new_df = pd.DataFrame(new_sample, columns=['redshift', 'u', 'g', 'r',
-                                                   'i', 'z', 'y'])
-        new_df.to_csv('../data/sparse_gan_train.csv', index=False)
+        black_line = mlines.Line2D([], [], color='k', label='GAN')
+        red_line = mlines.Line2D([], [], color='r', label='Original Data')
+
+        plt.legend(handles=[black_line,red_line],
+                   bbox_to_anchor=(0., 1.0, 1., .0), loc=4, fontsize=14)
+
+        #plt.tight_layout()
+        #plt.show()
+        plt.savefig('gan_corner_plot_%s.pdf' % plot_suffix)
+
+        self.gan_model = g
+        self.data_mean = data_mean
+        self.data_std = data_std
+
+        return
+
+    def create_gan_cat(self, cat_size, return_input=False):
+
+        if self.use_colors is True:
+            z_dim = 6
+        else:
+            z_dim = 7
+
+        z_noise = Variable(torch.randn(cat_size, z_dim))
+        G_sample = self.gan_model(z_noise)
+        new_sample = G_sample.detach().numpy() * self.data_std + self.data_mean
+
+        if self.use_colors is True:
+            sim_cat_df = pd.DataFrame()
+            sim_cat_df['redshift'] = new_sample[:,0]
+            for i in range(6):
+                band = self.mag_labels[i]
+                # Going to use colors anyway so just give u-band standard magnitude
+                if band == 'u':
+                    sim_cat_df['%s' % band] = 25.
+                else:
+                    sim_cat_df['%s' % band] = sim_cat_df['%s' % self.mag_labels[i-1]] - new_sample[:, i]
+        else:
+            sim_cat_df = pd.DataFrame(new_sample, columns=['redshift', 'u', 'g', 'r',
+                                                           'i', 'z', 'y'])
+        if return_input is False:
+            return sim_cat_df
+        else:
+            return sim_cat_df, z_noise.detach.numpy()
+
+    def save_model(self, filename):
+
+        torch.save({'model_state_dict': net.state_dict(),
+                    'model_train_mean': self.train_mean,
+                    'model_train_stdev': self.train_stdev},
+                   filename)
+
+    def load_model(self, filename):
+
+        if self.use_colors is True:
+            z_dim = 6
+        else:
+            z_dim = 7
+
+        g = generator(z_dim)
+        checkpoint = torch.load(filename)
+        g.load_state_dict(checkpoint['model_state_dict'])
+        g.train_mean = checkpoint['model_train_mean']
+        g.train_stdev = checkpoint['model_train_stdev']
+
+        self.gan_model = g
+        self.data_mean = g.train_mean
+        self.data_std = g.train_stdev
+
+        return
