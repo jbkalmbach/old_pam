@@ -33,10 +33,13 @@ class Net(torch.nn.Module):
 
 class photoz_nn():
 
-    def __init__(self, seed=None, use_colors=True):
+    def __init__(self, torch_seed=None,
+                 numpy_seed=None, use_colors=True):
 
-        if seed is not None:
-            torch.manual_seed(seed)
+        if torch_seed is not None:
+            torch.manual_seed(torch_seed)
+        if numpy_seed is not None:
+            np.random.seed(numpy_seed)
         self.use_colors = use_colors
 
     def load_catalog(self, cat_file):
@@ -53,16 +56,31 @@ class photoz_nn():
 
         return cat_input, cat_true
 
-    def train_model(self, train_input, train_true, n_epochs,
+    def train_model(self, train_input, train_output, n_epochs,
                     return_error=False):
 
-        # Normalize data
-        train_mean = np.mean(train_input, axis=0)
-        train_stdev = np.std(train_input, axis=0)
-        train_input -= train_mean
-        train_input /= train_stdev
+        shuffled_idx = np.arange(len(train_input))
+        np.random.shuffle(shuffled_idx)
+        cv_break = int(0.8*len(train_input))  # Save 20% for cross-validation
+        train_samples = train_input[shuffled_idx[:cv_break]]
+        cv_samples = train_input[shuffled_idx[cv_break:]]
+        train_true = train_output[shuffled_idx[:cv_break]]
+        cv_true = train_output[shuffled_idx[cv_break:]]
 
-        train_len = len(train_input)
+        # Normalize data
+        train_mean = np.mean(train_samples, axis=0)
+        train_stdev = np.std(train_samples, axis=0)
+        train_samples -= train_mean
+        train_samples /= train_stdev
+
+        # CV data must use same parameters as training
+        cv_samples -= train_mean
+        cv_samples /= train_stdev
+
+        train_len = len(train_samples)
+        cv_len = len(cv_samples)
+        print('Training Set Size: %i' % train_len)
+        print('Validation Set Size: %i' % cv_len)
 
         loss_curve = []
 
@@ -77,13 +95,13 @@ class photoz_nn():
 
         for t in range(n_epochs):
 
-            batch_size = 128
+            batch_size = 64
             batch_indices = torch.randperm(train_len).numpy()
 
             for batch_start in range(0, train_len, batch_size):
 
                 batch_idx = batch_indices[batch_start:batch_start+batch_size]
-                nn_input = train_input[batch_idx]
+                nn_input = train_samples[batch_idx]
 
                 # If last batch is not of batch_size change batch_size
                 if len(nn_input) < batch_size:
@@ -105,10 +123,10 @@ class photoz_nn():
                 loss.backward()
                 optimizer.step()
 
-            nn_input = torch.tensor(train_input, dtype=torch.float)
-            true_output = torch.tensor(train_true,
+            nn_input = torch.tensor(cv_samples, dtype=torch.float)
+            true_output = torch.tensor(cv_true,
                                        dtype=torch.float).reshape(
-                                           len(train_input), 1)
+                                           len(cv_true), 1)
             prediction = net(nn_input)
             loss = loss_func(prediction, true_output)
             loss_curve.append(loss.data)
