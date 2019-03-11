@@ -9,7 +9,7 @@ if __name__ == "__main__":
     test_suffix = sys.argv[2]
     n_epochs = int(sys.argv[3])
 
-    pz_nn = photoz_nn(seed=1446)
+    pz_nn = photoz_nn(torch_seed=1446, numpy_seed=1100)
 
     train_filename = '../data/train_cat_%s.dat' % train_suffix
     train_colors, train_specz = pz_nn.load_catalog(train_filename)
