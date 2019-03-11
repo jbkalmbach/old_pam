@@ -250,9 +250,9 @@ class gan_nn():
 
     def save_model(self, filename):
 
-        torch.save({'model_state_dict': net.state_dict(),
-                    'model_train_mean': self.train_mean,
-                    'model_train_stdev': self.train_stdev},
+        torch.save({'model_state_dict': self.gan_model.state_dict(),
+                    'model_train_mean': self.data_mean,
+                    'model_train_stdev': self.data_std},
                    filename)
 
     def load_model(self, filename):
