@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import sys
 from photoz_nn import photoz_nn
 
@@ -18,7 +19,8 @@ if __name__ == "__main__":
     train_len = len(train_colors)
     test_len = len(test_colors)
 
-    net = pz_nn.train_model(train_colors, train_specz, n_epochs)
+    net, error = pz_nn.train_model(train_colors, train_specz,
+                                   n_epochs, return_error=True)
 
     pz_nn.save_model(net, '../data/pz_network_%s.pt' % train_suffix)
 
@@ -36,3 +38,4 @@ if __name__ == "__main__":
                             index=False)
     test_results_df.to_csv('../data/test_results_%s.csv' % train_suffix,
                            index=False)
+    np.savetxt('../data/train_error_%s.csv' % train_suffix, error)
