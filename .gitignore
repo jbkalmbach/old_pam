@@ -5,3 +5,6 @@ scripts/.ipynb_checkpoints
 
 # emacs backups
 *~
+
+# pyc files
+*.pyc

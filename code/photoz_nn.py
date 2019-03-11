@@ -53,7 +53,8 @@ class photoz_nn():
 
         return cat_input, cat_true
 
-    def train_model(self, train_input, train_true, n_epochs):
+    def train_model(self, train_input, train_true, n_epochs,
+                    return_error=False):
 
         # Normalize data
         train_mean = np.mean(train_input, axis=0)
@@ -62,6 +63,8 @@ class photoz_nn():
         train_input /= train_stdev
 
         train_len = len(train_input)
+
+        loss_curve = []
 
         if self.use_colors is True:
             net = Net(5, 20, 1)
@@ -102,7 +105,15 @@ class photoz_nn():
                 loss.backward()
                 optimizer.step()
 
-            if (t+1) % 20 == 0:
+            nn_input = torch.tensor(train_input, dtype=torch.float)
+            true_output = torch.tensor(train_true,
+                                       dtype=torch.float).reshape(
+                                           len(train_input), 1)
+            prediction = net(nn_input)
+            loss = loss_func(prediction, true_output)
+            loss_curve.append(loss.data)
+
+            if (t+1) % 2 == 0:
                 print('After %i epochs' % (t+1))
                 print(nn_input[2], prediction[2], true_output[2], loss.data)
                 print(nn_input[5], prediction[5], true_output[5], loss.data)
@@ -110,7 +121,10 @@ class photoz_nn():
         net.train_mean = train_mean
         net.train_stdev = train_stdev
 
-        return net
+        if return_error is True:
+            return net, loss_curve
+        else:
+            return net
 
     def run_model(self, net, input_data):
 
