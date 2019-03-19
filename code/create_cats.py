@@ -123,6 +123,7 @@ class create_cats():
                               index=False)
 
     def create_color_group_cats(self, out_suffix, train_len, color_groups,
+                                sparsity=None,
                                 choose_out=None, out_dir='.', plot_color=True,
                                 random_state=None, save_test=False,
                                 cc_plot_name='group_cut_color_color'):
@@ -166,8 +167,15 @@ class create_cats():
         if choose_out is None:
             choose_out = random_state.randint(0, high=color_groups)
         print('Removing Color Group %i' % choose_out)
-        keep_train = np.where(train_labels != choose_out)
-        train_input = train_input.iloc[keep_train]
+        keep_train = np.where(train_labels != choose_out)[0]
+        if sparsity is None:
+            train_input = train_input.iloc[keep_train]
+        else:
+            out_train = np.where(train_labels == choose_out)[0]
+            out_train = out_train[::sparsity]
+            keep_train = np.concatenate((keep_train, out_train))
+            train_input = train_input.iloc[keep_train]
+            train_labels = train_labels[keep_train]
 
         if plot_color is True:
             self.plot_color_color(train_input[['u', 'g', 'r',
