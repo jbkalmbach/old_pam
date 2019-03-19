@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 from sklearn.cluster import KMeans
 
 
@@ -43,7 +44,7 @@ class create_cats():
                          out_dir='.', plot_color=True,
                          cc_plot_name='train_color_color',
                          random_state=None):
-        
+
         if ((type(random_state) is int) | (random_state is None)):
             random_state = np.random.RandomState(random_state)
 
@@ -57,7 +58,7 @@ class create_cats():
         shuffled_idx = random_state.choice(np.arange(len(cat_df)),
                                            size=len(cat_df),
                                            replace=False)
-                                        
+
         train_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
                               'z', 'y']].iloc[shuffled_idx[:train_len]]
         test_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
@@ -86,7 +87,7 @@ class create_cats():
 
         if ((type(random_state) is int) | (random_state is None)):
             random_state = np.random.RandomState(random_state)
-        
+
         cat_df = pd.DataFrame(self.get_catalog())
 
         # If train_len < 1 then it is a fraction of catalog
@@ -95,9 +96,9 @@ class create_cats():
         test_len = len(cat_df) - train_len
 
         shuffled_idx = random_state.choice(np.arange(len(cat_df)),
-                                         size=len(cat_df),
-                                         replace=False)
-                                        
+                                           size=len(cat_df),
+                                           replace=False)
+
         train_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
                               'z', 'y']].iloc[shuffled_idx[:train_len:sparsity]]
         test_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
@@ -141,7 +142,7 @@ class create_cats():
         shuffled_idx = random_state.choice(np.arange(len(cat_df)),
                                            size=len(cat_df),
                                            replace=False)
-                                        
+
         train_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
                               'z', 'y']].iloc[shuffled_idx[:train_len]]
         test_input = cat_df[['redshift', 'u', 'g', 'r', 'i',
@@ -173,8 +174,12 @@ class create_cats():
                                                'i', 'z', 'y']].values,
                                   os.path.join(out_dir,
                                                '%s.pdf' % cc_plot_name))
-            fig = plt.figure(figsize=(12, 12))
+            fig = plt.figure(figsize=(14, 14))
             color_names = ['u-g', 'g-r', 'r-i', 'i-z', 'z-y']
+
+            cmap = plt.get_cmap('tab10')
+            color_vals = cmap(np.arange(color_groups))
+            cm = ListedColormap(color_vals)
 
             for color_idx in range(4):
 
@@ -183,13 +188,22 @@ class create_cats():
                 plt.scatter(train_colors[::10, color_idx],
                             train_colors[::10, color_idx+1], alpha=0.2,
                             c=train_labels[::10],
-                            cmap=plt.get_cmap('tab10'))
+                            cmap=cm, vmin=0, vmax=color_groups)
 
-                plt.xlabel(color_names[color_idx])
-                plt.ylabel(color_names[color_idx+1])
-                plt.colorbar()
+                plt.xlabel(color_names[color_idx], size=14)
+                plt.ylabel(color_names[color_idx+1], labelpad=1., size=14)
+                plt.xticks(size=14)
+                plt.yticks(size=14)
+            fig.subplots_adjust(right=0.85)
+            cbar_ax = fig.add_axes([0.88, 0.1, 0.03, 0.8])
+            cbar = plt.colorbar(cax=cbar_ax)
+            cbar.ax.invert_yaxis()
+            cbar.set_ticks(np.arange(color_groups)+0.5)
+            cbar.set_ticklabels(['Group %i' % g_num for g_num
+                                 in range(color_groups)])
+            cbar.ax.tick_params(labelsize=14)
 
-            plt.tight_layout()
+            #plt.tight_layout()
             plt.savefig(os.path.join(out_dir, 'color_gap_groups.pdf'))
 
         train_len = len(train_input)
