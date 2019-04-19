@@ -16,8 +16,10 @@ class Net(torch.nn.Module):
         # Set up layers
 
         self.hidden_1 = torch.nn.Linear(n_input_features, n_hidden_nodes)
-        self.hidden_2 = torch.nn.Linear(n_hidden_nodes, n_hidden_nodes)
+        self.hidden_2 = torch.nn.Linear(n_hidden_nodes, 2*n_hidden_nodes)
+        self.hidden_3 = torch.nn.Linear(2*n_hidden_nodes, n_hidden_nodes)
         self.predict = torch.nn.Linear(n_hidden_nodes, n_output)
+        torch.nn.init.uniform_(self.predict.weight)
 
         self.train_mean = None
         self.train_stdev = None
@@ -26,7 +28,8 @@ class Net(torch.nn.Module):
 
         x = F.relu(self.hidden_1(x))
         x = F.relu(self.hidden_2(x))
-        x = self.predict(x)
+        x = F.relu(self.hidden_3(x))
+        x = F.relu(self.predict(x))
 
         return x
 
@@ -56,7 +59,7 @@ class photoz_nn():
 
         return cat_input, cat_true
 
-    def train_model(self, train_input, train_output, n_epochs,
+    def train_model(self, train_input, train_output, n_epochs, cv_thresh=None,
                     return_error=False):
 
         shuffled_idx = np.arange(len(train_input))
@@ -66,6 +69,8 @@ class photoz_nn():
         cv_samples = train_input[shuffled_idx[cv_break:]]
         train_true = train_output[shuffled_idx[:cv_break]]
         cv_true = train_output[shuffled_idx[cv_break:]]
+
+        np.savetxt('cv_test.dat', cv_samples)
 
         # Normalize data
         train_mean = np.mean(train_samples, axis=0)
@@ -90,12 +95,13 @@ class photoz_nn():
             net = Net(6, 20, 1)
         print(net)
 
-        optimizer = torch.optim.SGD(net.parameters(), lr=0.01)
+        #optimizer = torch.optim.SGD(net.parameters(), lr=0.01)
+        optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
         loss_func = torch.nn.MSELoss()
 
         for t in range(n_epochs):
 
-            batch_size = 64
+            batch_size = 128
             batch_indices = torch.randperm(train_len).numpy()
 
             for batch_start in range(0, train_len, batch_size):
@@ -128,13 +134,18 @@ class photoz_nn():
                                        dtype=torch.float).reshape(
                                            len(cv_true), 1)
             prediction = net(nn_input)
-            loss = loss_func(prediction, true_output)
-            loss_curve.append(loss.data)
+            cv_loss = loss_func(prediction, true_output)
+            loss_curve.append(cv_loss.data)
 
-            if (t+1) % 2 == 0:
+            if (t+1) % 1 == 0:
                 print('After %i epochs' % (t+1))
-                print(nn_input[2], prediction[2], true_output[2], loss.data)
-                print(nn_input[5], prediction[5], true_output[5], loss.data)
+                print(loss.data)
+                print(nn_input[2], prediction[2], true_output[2], cv_loss.data)
+                print(nn_input[5], prediction[5], true_output[5], cv_loss.data)
+
+            if cv_thresh is not None:
+                if cv_loss.data <= cv_thresh:
+                    break
 
         net.train_mean = train_mean
         net.train_stdev = train_stdev

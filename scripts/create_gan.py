@@ -10,7 +10,7 @@ if __name__ == "__main__":
     use_colors = bool(int(sys.argv[2]))
     n_epochs = int(sys.argv[3])
 
-    pz_gan = gan_nn(seed=1222, use_colors=use_colors)
+    pz_gan = gan_nn(seed=141, use_colors=use_colors)
 
     train_filename = '../data/train_cat_%s.dat' % train_suffix
     # Load in training set with a k-means group taken out

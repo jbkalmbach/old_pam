@@ -202,9 +202,12 @@ class create_cats():
                 plt.ylabel(color_names[color_idx+1], labelpad=1., size=14)
                 plt.xticks(size=14)
                 plt.yticks(size=14)
+                if color_idx == 0:
+                    plt.yticks([-1., 0., 1., 2., 3.], ['-1.0', '0.0', '1.0', '2.0', '3.0'])
             fig.subplots_adjust(right=0.85)
             cbar_ax = fig.add_axes([0.88, 0.1, 0.03, 0.8])
             cbar = plt.colorbar(cax=cbar_ax)
+            cbar.solids.set(alpha=1.)
             cbar.ax.invert_yaxis()
             cbar.set_ticks(np.arange(color_groups)+0.5)
             cbar.set_ticklabels(['Group %i' % g_num for g_num

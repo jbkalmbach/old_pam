@@ -7,6 +7,7 @@ import corner
 import torch.nn.functional as F
 from torch import nn, optim
 from torch.autograd.variable import Variable
+from torch.distributions.multivariate_normal import MultivariateNormal
 from torchvision import transforms, datasets
 from copy import deepcopy
 
@@ -23,7 +24,6 @@ class discriminator(nn.Module):
             torch.nn.ReLU(),
             torch.nn.Linear(h_dim, 2*h_dim),
             torch.nn.ReLU(),
-            torch.nn.Dropout(0.2),
             torch.nn.Linear(2*h_dim, h_dim),
             torch.nn.ReLU(),
             torch.nn.Linear(h_dim, 1),
@@ -46,10 +46,9 @@ class generator(nn.Module):
         self.g = torch.nn.Sequential(
             torch.nn.Linear(X_dim, h_dim),
             torch.nn.ReLU(),
-            torch.nn.Linear(h_dim, 2*h_dim),
+            torch.nn.Linear(h_dim, 4*h_dim),
             torch.nn.ReLU(),
-            torch.nn.Dropout(0.2),
-            torch.nn.Linear(2*h_dim, h_dim),
+            torch.nn.Linear(4*h_dim, h_dim),
             torch.nn.ReLU(),
             torch.nn.Linear(h_dim, X_dim)
             )
@@ -90,14 +89,8 @@ class gan_nn():
 
         return cat_input
 
-    def reset_grad(self, params):
-        for p in params:
-            if p.grad is not None:
-                data = p.grad.data
-                p.grad = Variable(data.new().resize_as_(data).zero_())
-
     def train_gan(self, train_input, n_epochs,
-                  mini_batch_size=64, plot_suffix='test'):
+                  mini_batch_size=8, plot_suffix='test'):
 
         Z_dim = np.shape(train_input)[1]
         print(Z_dim)
@@ -105,8 +98,8 @@ class gan_nn():
         d = discriminator(Z_dim)
         g = generator(Z_dim)
 
-        d_optimizer = optim.Adam(d.parameters(), lr=0.0002)
-        g_optimizer = optim.Adam(g.parameters(), lr=0.0002)
+        d_optimizer = optim.Adam(d.parameters(), lr=0.0001)
+        g_optimizer = optim.Adam(g.parameters(), lr=0.0001)
 
         good_data = deepcopy(train_input)
         data_mean = np.mean(good_data, axis=0)
@@ -124,26 +117,34 @@ class gan_nn():
         zeros_label = Variable(torch.zeros(mini_batch_size, 1))
 
         epoch_samples = []
+        G_loss =  F.binary_cross_entropy(zeros_label, ones_label)
 
         for epoch_num in range(n_epochs):
             print(epoch_num)
             num_batches = np.ceil(len(input_data)/mini_batch_size)
             input_idx = np.arange(len(input_data))
             np.random.shuffle(input_idx)
+
             for it in range(int(num_batches)):
                 # Sample data
                 X = input_data[input_idx[it*mini_batch_size:
                                          (it+1)*mini_batch_size]]
                 z = Variable(torch.randn(len(X), Z_dim))
-                #X, _ = mnist.train.next_batch(mb_size)
+                #z = Variable(MultivariateNormal(torch.zeros(Z_dim), torch.eye(Z_dim)).sample((len(X),)))
                 X = Variable(X)
                 
                 ones_label = Variable(torch.ones(len(X), 1))
                 zeros_label = Variable(torch.zeros(len(X), 1))
                 
                 ### Discriminator "f-l-b" update
+                #g_optimizer.zero_grad()
                 
-                for itd in range(1):
+                if G_loss.item() < 0.4:
+                    d_iter = 2
+                else:
+                    d_iter = 1
+
+                for itd in range(d_iter):
             
                     G_sample = g(z)
                     D_real = d(X)
@@ -153,53 +154,71 @@ class gan_nn():
                     D_loss_fake = F.binary_cross_entropy(D_fake, zeros_label)
                     D_loss = D_loss_real + D_loss_fake
 
+                    d_optimizer.zero_grad()
                     D_loss.backward()
                     d_optimizer.step()
+
+                    # if itd < 2:
+                    #     z = Variable(torch.randn(len(X), Z_dim))
+                    #     #z = Variable(MultivariateNormal(torch.zeros(Z_dim), torch.eye(Z_dim)).sample((mini_batch_size,)))
+                    #     G_sample = g(z)
+                    #     D_fake = d(G_sample)
+                    
+                    #     ones_label = Variable(torch.ones(len(z), 1))
+                    #     zeros_label = Variable(torch.zeros(len(z), 1))
                 
-                    self.reset_grad(params)
+                    #     G_loss = F.binary_cross_entropy(D_fake, ones_label)
+                    #     G_loss.backward()
                 
                 ### Generator update
+                if D_loss.item() < 0.8:
+                    g_iter = 2
+                else:
+                    g_iter = 1
+
+                for itd in range(g_iter):
+                    z = Variable(torch.randn(len(X), Z_dim))
+                    #z = Variable(MultivariateNormal(torch.zeros(Z_dim), torch.eye(Z_dim)).sample((mini_batch_size,)))
+                    G_sample = g(z)
+                    D_fake = d(G_sample)
+                    
+                    ones_label = Variable(torch.ones(len(z), 1))
+                    zeros_label = Variable(torch.zeros(len(z), 1))
                 
-                z = Variable(torch.randn(mini_batch_size, Z_dim))
-                G_sample = g(z)
-                D_fake = d(G_sample)
+                    G_loss = F.binary_cross_entropy(D_fake, ones_label)
                 
-                ones_label = Variable(torch.ones(len(z), 1))
-                zeros_label = Variable(torch.zeros(len(z), 1))
+                    g_optimizer.zero_grad()
+                    G_loss.backward()
+                    g_optimizer.step()
+                    #g_optimizer.zero_grad()
                 
-                G_loss = F.binary_cross_entropy(D_fake, ones_label)
-                
-                G_loss.backward()
-                g_optimizer.step()
-                
-                self.reset_grad(params)
-                
-                if it % 500 == 0:
-                    print('Epoch: %i, Iter: %i, D_loss: %.3f, G_loss: %.3f' %
-                          (epoch_num, it, D_loss, G_loss))
-                if it == 1500:
-                    print(D_fake[:10], D_real[:10])
+            if epoch_num % 5 == 0:
+                print('Epoch: %i, Iter: %i, D_loss: %.3f, G_loss: %.3f' %
+                      (epoch_num, it, D_loss.item(), G_loss.item()))
+            if epoch_num % 5 == 0:
+                print(D_fake[:10], D_real[:10])
 
             z = Variable(torch.randn(len(train_input), Z_dim))
+            #z = Variable(MultivariateNormal(torch.zeros(Z_dim), torch.eye(Z_dim)).sample((len(train_input)*100,)))
             G_sample = g(z)
             new_sample = G_sample.detach().numpy() * data_std + data_mean
 
-        min_vals = np.min(train_input, axis=0) - 0.1
-        max_vals = np.max(train_input, axis=0) + 0.1
+        min_vals = np.min(train_input, axis=0) - 0.2
+        max_vals = np.max(train_input, axis=0) + 0.2
 
         if self.use_colors is True:
             limits = [(x, y) for x, y in zip(min_vals, max_vals)]
-            labels = ['redshift', 'u-g', 'g-r', 'r-i', 'i-z', 'z-y']
+            labels = ['redshift', 'u-g', 'g-r', 'r-i', 'i-z', 'z-y', 'ug_err', 'gr_err', 'ri_err', 'iz_err', 'zy_err']
         else:
             limits = [(x, y) for x, y in zip(min_vals, max_vals)]
             labels = ['redshift', 'u', 'g', 'r', 'i', 'z', 'y']
 
         fig, axes = plt.subplots(Z_dim, Z_dim, figsize=(18, 18))
         corner.corner(new_sample, range=limits, labels=labels, fig=fig,
-                      label_kwargs={'size': 20}, plot_datapoints=False)
+                      label_kwargs={'size': 20}, plot_datapoints=False, hist_kwargs={'density':True})
         corner.corner(train_input, color='r',
-                      plot_datapoints=False,
-                      fig=fig, range=limits, labels=labels)
+                      plot_datapoints=True, plot_contours=False,
+                      fig=fig, range=limits, labels=labels, hist_kwargs={'density':True})
         for ax in fig.get_axes():  
             ax.tick_params(axis='both', labelsize=14)
 
@@ -227,6 +246,7 @@ class gan_nn():
             z_dim = 7
 
         z_noise = Variable(torch.randn(cat_size, z_dim))
+        #z_noise = Variable(MultivariateNormal(torch.zeros(z_dim), torch.eye(z_dim)).sample((cat_size,)))
         G_sample = self.gan_model(z_noise)
         new_sample = G_sample.detach().numpy() * self.data_std + self.data_mean
 
@@ -258,7 +278,7 @@ class gan_nn():
     def load_model(self, filename):
 
         if self.use_colors is True:
-            z_dim = 6
+            z_dim = 11
         else:
             z_dim = 7
 

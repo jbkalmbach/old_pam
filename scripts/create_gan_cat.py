@@ -18,6 +18,8 @@ if __name__ == "__main__":
     train_cat_df = pd.read_csv(train_filename)
 
     pz_gan.load_model('../data/gan_model_%s.pt' % train_suffix)
+    pz_gan.gan_model.eval()
+    print(pz_gan.gan_model.training)
     train_len = len(train_cat)
     if cat_length <= train_len:
         raise ValueError('New catalog must be greater than training catalog size.')

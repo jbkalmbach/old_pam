@@ -123,6 +123,7 @@ class plot_pz_nn():
 
         for idx in range(len(suffixes)):
             stdev_iqr = pm.photo_z_robust_stdev(
+            #stdev_iqr = pm.photo_z_stdev(
                             test_results_list[idx]['photo_z'],
                             test_results_list[idx]['true_z'],
                             z_high, n_bins)
